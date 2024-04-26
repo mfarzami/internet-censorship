@@ -1,0 +1,295 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Internet Censorship</title>
+        <script src="https://d3js.org/d3.v5.min.js"></script>
+        <script src="https://d3js.org/topojson.v2.min.js"></script>
+        
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    </head>
+    <style>
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+        body {
+            font-family: "Jersey 10", sans-serif;
+            font-weight: 400;
+            font-style: normal;
+        }
+        h1 {
+            font-size: 70;
+            padding-left: 20;
+            padding-top: 20;
+            overflow: hidden;
+            border-right: .05em solid rgb(0, 0, 0);
+            white-space: nowrap;
+            margin: 0 auto;
+            animation: 
+                typing 3.5s steps(40, end)      
+        }
+        p {
+            font-size: 20;
+            padding-left: 20;
+            padding-right: 20;
+            font-family: "Montserrat", sans-serif;
+            font-optical-sizing: auto;
+            font-weight: 300;
+            font-style: normal;
+        }
+        .labels {
+            font-family: "Jersey 10", sans-serif;
+            font-weight: 400;
+            font-style: normal;
+            font-size: 20;
+        }
+        .scorelabels {
+            font-size: 30;
+        }
+    </style>
+    <body>
+    <h1>INTERNET CENSORSHIP</h1>
+    <p>Internet censorship is the suppression of what can be accessed, published, or viewed on the internet. Governed by both public and private entities, these restrictions vary significantly from country to country. The motives behind censorship can range from maintaining security to preserving culture. However, it also raises critical issues regarding freedom of expression and the right to information.</p>    
+    <p>In 2023, Reporters without Borders collected data and scored censorship levels across the world. Their methodology seeks to compare the level of freedom enjoyed by journalists and media in 180 countries and territories.</p>
+    <svg id="svg" height="700" width="1200" style="background: #fff;" ></svg>
+    <script>
+        //svg setup
+        var svg = d3.select('svg'),
+        margin = { top: 30, right: 30, bottom: 30, left:30 },
+        width = +svg.attr('width') - margin.left - margin.right,
+        height = +svg.attr('height') - margin.top - margin.bottom,
+        g = svg.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+        //load data
+        const makeChart = async function() {
+            const rsfscores = await d3.csv("rsf_scores_formatted.csv");
+            console.log(rsfscores);
+
+            const worldtopo = await d3.json("world.json");
+            console.log(worldtopo);
+
+        //set up for map 
+        const worldgeo = topojson.feature(worldtopo, worldtopo.objects.worldByIso).features
+            //get rid of anarctica
+            .filter(d => d.properties.iso !== "ATA")
+            .filter(d => d.properties.iso !== "SJM")
+            .filter(d => d.properties.iso !== "GRL");
+        
+        var projection = d3.geoMercator().fitSize([width, height], {type: "FeatureCollection", features: worldgeo});
+        var path = d3.geoPath().projection(projection);
+
+        //map countries from json to csv
+        const ISOmapping = new Map(rsfscores.map(d => [d.ISO, +d.Score]));
+        
+        //create score color scale
+        let colorScale = d3.scaleSequential(d3.interpolate("red", "green")).domain(d3.extent(Array.from(ISOmapping.values())));
+
+        //output map
+        let countries = svg.selectAll(".country").data(worldgeo)
+                .enter()
+                .append("path")
+                .attr("class", "country")
+                .attr("fill",d => colorScale(ISOmapping.get(d.properties.iso))? colorScale(ISOmapping.get(d.properties.iso)) : 'grey') 
+                .attr("d", path);
+
+        //hoverover
+        countries.on("mouseover", function(d, i) {
+            const country = d.properties.name;
+            const score  = ISOmapping.get(d.properties.iso);
+            d3.select(this)
+                .transition().duration(200)
+                .attr("stroke","black")
+                .attr("stroke-width", 2);
+            svg.append("text")
+                    .attr("id", "countryName")
+                    .attr("x", 20)
+                    .attr("y", 30)
+                    .attr("fill", "black")
+                    .attr("font-size", "25px")
+                    .text(country.toUpperCase());
+            svg.append("text")
+                    .attr("id", "countryScore")
+                    .attr("x", 20)
+                    .attr("y", 60)
+                    .attr("fill", d => colorScale(score)? colorScale(score) : 'grey')
+                    .attr("font-size", "40px")
+                    .text(Math.round(score));
+            });
+        
+        countries.on("mouseout", function(d, i) {
+            d3.select(this)
+                .transition().duration(200)
+                .attr("stroke","");
+            svg.select("#countryName").remove();
+            svg.select("#countryScore").remove();
+            });
+        }
+        makeChart();
+    </script>
+    <p>Compare the top countries with the most and least internet freedom.</p>
+    <div id="svg-container" style="display: flex; justify-content: space-around;">
+    <svg id="mostfree" height="400" width="600" style="background: #fff;"></svg>
+    <svg id="moststrict" height="400" width="600" style="background: #fff;"></svg>
+    </div>    <script>
+        //svg setup
+        const makeChart1 = async function() {
+            //MOST FREE
+            var mostfree = d3.select('#mostfree'),
+            margin = { top: 30, right: 30, bottom: 30, left:30 },
+            width = +mostfree.attr('width') - margin.left - margin.right,
+            height = +mostfree.attr('height') - margin.top - margin.bottom,
+            g = mostfree.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+        
+            //bar chart data
+            var freedata = [
+                {country: 'NORWAY', score: 95},
+                {country: 'IRELAND', score: 90},
+                {country: 'DENMARK', score: 89},
+                {country: 'SWEDEN', score: 88},
+                {country: 'FINLAND', score: 88}
+            ];
+
+            //load data
+            const rsfscores = await d3.csv("rsf_scores_formatted.csv");
+            console.log(rsfscores);
+
+            //map countries from json to csv
+            const ISOmapping = new Map(rsfscores.map(d => [d.ISO, +d.Score]));
+            
+            //create score color scale
+            let colorScale = d3.scaleSequential(d3.interpolate("red", "green")).domain(d3.extent(Array.from(ISOmapping.values())));
+
+
+            //set up scales
+            const xScale = d3.scaleBand()
+                .rangeRound([0, width])
+                .padding(0.1)
+                .domain(freedata.map(d => d.country));
+            const yScale = d3.scaleLinear()
+                .domain([0, 100])
+                .range([height+15, 15]);
+
+            //bar chart
+            const freebars = mostfree.selectAll('.bar')
+                .data(freedata)
+                .enter().append('rect')
+                .attr('class', 'bar')
+                .attr('x', d => xScale(d.country))
+                .attr('y', d => yScale(d.score))
+                .attr('width', xScale.bandwidth())
+                .attr('height', d => height - yScale(d.score))
+                .attr('fill', d => colorScale(d.score));
+        
+            // x axis labels
+            mostfree.append('g')
+                .attr('transform', `translate(0,${height})`)
+                .call(d3.axisBottom(xScale))
+                .attr('class','labels')
+                .selectAll('.domain, .tick line')
+                .remove();
+
+            //mouseover
+            freebars.on("mouseover", function(d, i) {
+                d3.select(this)
+                .transition().duration(200)
+                .attr("stroke","black")
+                .attr("stroke-width", 2);
+
+                //add score on mousover
+                mostfree.append("text")
+                    .attr("x", xScale(d.country) + xScale.bandwidth() / 2)
+                    .attr("y", yScale(d.score) - 15)
+                    .attr("text-anchor", "middle")
+                    .attr("fill", "black") 
+                    .attr("class", "scorelabels")
+                    .text(d.score)
+                    .attr("id", "scoreLabel");
+            });
+
+            freebars.on("mouseout", function(d, i) {
+                d3.select(this)
+                .transition().duration(200)
+                .attr("stroke","")
+                .attr("stroke-width", 0);
+
+                mostfree.select("#scoreLabel").remove();
+            });
+
+            //MOST STRICT
+            var moststrict = d3.select('#moststrict'),
+            margin = { top: 30, right: 30, bottom: 30, left:30 },
+            width = +moststrict.attr('width') - margin.left - margin.right,
+            height = +moststrict.attr('height') - margin.top - margin.bottom,
+            g = moststrict.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+        
+            //bar chart data
+            var strictdata = [
+                {country: 'NORTH KOREA', score: 22},
+                {country: 'CHINA', score: 23},
+                {country: 'VIETNAM', score: 25},
+                {country: 'IRAN', score: 25},
+                {country: 'TURKMENISTAN', score: 26}
+            ];
+
+            //set up scales
+            const xScale_strict = d3.scaleBand()
+                .rangeRound([0, width])
+                .padding(0.1)
+                .domain(strictdata.map(d => d.country));
+            const yScale_strict = d3.scaleLinear()
+                .domain([0, 100])
+                .range([height+15, 15]);
+
+            //bar chart
+            const strictbars = moststrict.selectAll('.bar')
+                .data(strictdata)
+                .enter().append('rect')
+                .attr('class', 'bar')
+                .attr('x', d => xScale_strict(d.country))
+                .attr('y', d => yScale_strict(d.score))
+                .attr('width', xScale_strict.bandwidth())
+                .attr('height', d => height - yScale_strict(d.score))
+                .attr('fill', d => colorScale(d.score));
+        
+            // x axis labels
+            moststrict.append('g')
+                .attr('transform', `translate(0,${height})`)
+                .call(d3.axisBottom(xScale_strict))
+                .attr('class','labels')
+                .selectAll('.domain, .tick line')
+                .remove();
+
+            //mouseover
+            strictbars.on("mouseover", function(d, i) {
+                d3.select(this)
+                .transition().duration(200)
+                .attr("stroke","black")
+                .attr("stroke-width", 2);
+
+                //add score on mouseover
+                moststrict.append("text")
+                    .attr("x", xScale_strict(d.country) + xScale.bandwidth() / 2)
+                    .attr("y", yScale_strict(d.score) - 15)
+                    .attr("text-anchor", "middle")
+                    .attr("fill", "black") 
+                    .attr("class", "scorelabels")
+                    .text(d.score)
+                    .attr("id", "scoreLabel");
+            });
+
+            strictbars.on("mouseout", function(d, i) {
+                d3.select(this)
+                .transition().duration(200)
+                .attr("stroke","")
+                .attr("stroke-width", 0);
+
+                moststrict.select("#scoreLabel").remove();
+            });
+
+        }
+        makeChart1();
+    </script>
+    </body>
+</html>
