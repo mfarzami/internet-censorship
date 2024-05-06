@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
     <head>
         <meta charset="utf-8">
@@ -6,16 +7,16 @@
         <script src="https://d3js.org/topojson.v2.min.js"></script>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
         <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
         <link href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Tinos:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-
+        <script src="https://kit.fontawesome.com/899bdd0e43.js" crossorigin="anonymous"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-        <script src="scrolly.js"></script>
 </head>
     <style>
         @keyframes typing {
             from { width: 0; }
-            to { width: 50%; }
+            to { width: 38%; }
         }
         @keyframes fadein {
             from {
@@ -38,27 +39,27 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            text-align: center;
             position: relative;
         }
         body {
             /* font-family: "Jersey 10", sans-serif;*/
             /*font-family: "Tinos", serif;*/
-            font-family: "JetBrains Mono", monospace;
+            font-family: "Libre Franklin", sans-serif;
             font-optical-sizing: auto;
-            font-weight: 400;
+            font-weight: 700;
             font-style: normal;
         }
         h1 {
-            font-size: 45;
+            /*font-family: "JetBrains Mono", monospace;*/
+            font-size: 50px;
             padding-top: 20;
             overflow: hidden;
-            border-right: .05em solid rgb(0, 0, 0);
+            border-right: .07em solid rgb(0, 0, 0);
             white-space: nowrap;
             margin-left: auto;
             margin-right: auto;
             text-align: center;
-            animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;    
+            animation: typing 3.5s steps(25, end), blink-caret 0.75s step-end infinite;    
         }
         h2 {
             font-size: 35px;
@@ -81,17 +82,16 @@
         }
         .labels {
             /* font-family: "Jersey 10", sans-serif;*/
-            font-family: "JetBrains Mono", monospace;
-            font-optical-sizing: auto;
-            font-weight: 400;
+
             font-style: normal;
             font-size: 15px;
         }
         .scorelabels {
+
             font-size: 20px;
         }
         table, th, td {
-            border: 1px solid black;
+            border: 1px solid rgb(255, 255, 255);
             border-collapse: collapse;
             padding: 8px;
             text-align: left;
@@ -105,19 +105,58 @@
             opacity: 0;
             animation: fadein 3s ease 1s forwards;
         }
+        .scroll p {
+            font-family: "Libre Franklin", sans-serif;
+            font-optical-sizing: auto;
+            font-weight: 700;
+        }
+        .red {
+            color: red;
+        }       
+        .green {
+            color: green; 
+        }
+        .viz {
+            margin: 0 auto;
+            display: block;
+        }
+        .country {
+            width: 50%;
+            margin: 0 auto; 
+            display: flex;
+            justify-content: center;
+        }
+        .country1 {
+            width: 50%;
+            margin: 0 auto; 
+            display: flex;
+            justify-content: center;
+        }
+        .search {
+            width: 70%;
+            margin: 0 auto; 
+            display: flex;
+            justify-content: center;
+            font-size: 16px;
+            height: 30px;
+        }
     </style>
     <body>
     <div class="section">
     <div>
     <h1>Internet Censorship</h1>
-    <p>Internet censorship is the suppression of what can be accessed, published, or viewed on the internet. Governed by both public and private entities, these restrictions vary significantly from country to country. The motives behind censorship can range from maintaining security to preserving culture. However, it also raises critical issues regarding freedom of expression and the right to information.</p>    
-    <p>In 2023, Reporters without Borders collected data and scored censorship levels across the world. Their methodology seeks to compare the level of freedom enjoyed by journalists and media in 180 countries and territories.</p>
+    <p>Internet censorship is the suppression of what can be accessed, published, or viewed on the internet. Governed by public and private entities, these restrictions vary significantly from country to country. The motives behind censorship can range from maintaining security to preserving culture. In many places, censorship challenges the freedom of expression and the right to information.</p>    
+    <p>In 2023, Reporters without Borders collected data and scored internet censorship levels around the world. The score ranges from 0 to 100, where higher scores indicate greater freedom. This assessment is based on a variety of factors including the diversity of political, social, and cultural opinions allowed on the internet, the level of independence media organizations have, the amount of fear journalists may face that leads to self-censorship, and the laws that dictate these factors.</p>
     <div class = "scroll"><p>scroll down</p></div>
     </div>
     </div>
     
-    <svg id="svg" height="700" width="1200" style="background: #fff;" ></svg>
+    <svg class="viz" id="svg" height="700" width="1200" style="background: #fff;" ></svg>
     <script>
+
+        //load data
+        const makeChart = async function() {
+
         //svg setup
         var svg = d3.select('svg'),
         margin = { top: 30, right: 30, bottom: 30, left:30 },
@@ -125,8 +164,6 @@
         height = +svg.attr('height') - margin.top - margin.bottom,
         g = svg.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
-        //load data
-        const makeChart = async function() {
             const rsfscores = await d3.csv("rsf_scores_formatted.csv");
             console.log(rsfscores);
 
@@ -161,30 +198,41 @@
         countries.on("mouseover", function(d, i) {
             const country = d.properties.name;
             const score  = ISOmapping.get(d.properties.iso);
+
+            var [posx, posy] = d3.mouse(this.parentNode);
             d3.select(this)
                 .transition().duration(200)
                 .attr("stroke","black")
                 .attr("stroke-width", 2);
+            var recttooltip = svg.append("rect")
+                    .attr("id", "tooltip")
+                    .attr("x", posx)
+                    .attr("y", posy)
+                    .attr("width", 200)
+                    .attr("height", 100) 
+                    .attr("fill", "white")
+                    .attr("opacity", .8)
             svg.append("text")
                     .attr("id", "countryName")
-                    .attr("x", width/2)
-                    .attr("y", 30)
+                    .attr("x", posx+20)
+                    .attr("y", posy+35)
                     .attr("fill", "black")
-                    .attr("font-size", "25px")
+                    .attr("font-size", "20px")
                     .text(country);
             svg.append("text")
                     .attr("id", "countryScore")
-                    .attr("x", width/2)
-                    .attr("y", 75)
+                    .attr("x", posx+20)
+                    .attr("y", posy+75)
                     .attr("fill", d => colorScale(score)? colorScale(score) : 'grey')
-                    .attr("font-size", "40px")
-                    .text(Math.round(score));
+                    .attr("font-size", "30px")
+                    .text("Score: "+Math.round(score));
             });
         
         countries.on("mouseout", function(d, i) {
             d3.select(this)
                 .transition().duration(200)
                 .attr("stroke","");
+            svg.select("#tooltip").remove();
             svg.select("#countryName").remove();
             svg.select("#countryScore").remove();
             });
@@ -192,13 +240,12 @@
         makeChart();
     </script>
 
-    <p>Compare the top countries with the most and least internet freedom.</p>
+    <p>There are huge differences in the daily lives of citizens in the countries that enjoy the highest levels of media liberty alongside those that impose the most strict internet restrictions. Their scores are representative of how people access information and express themselves online, influencing everything from everyday conversations to broader social and political engagement.</p>
     <div id="svg-container" style="display: flex; justify-content: space-around;">
     <svg id="mostfree" height="400" width="600" style="background: #fff;"></svg>
     <svg id="moststrict" height="400" width="600" style="background: #fff;"></svg>
     </div> 
     <script>
-        //svg setup
         const makeChart1 = async function() {
             //MOST FREE
             var mostfree = d3.select('#mostfree'),
@@ -269,7 +316,7 @@
                     .attr("text-anchor", "middle")
                     .attr("fill", "black") 
                     .attr("class", "scorelabels")
-                    .text(d.score)
+                    .text("Score: "+d.score)
                     .attr("id", "scoreLabel");
             });
 
@@ -340,7 +387,7 @@
                     .attr("text-anchor", "middle")
                     .attr("fill", "black") 
                     .attr("class", "scorelabels")
-                    .text(d.score)
+                    .text("Score: "+d.score)
                     .attr("id", "scoreLabel");
             });
 
@@ -356,66 +403,135 @@
         }
         makeChart1();
     </script>
-    <h2>Iran</h2>
-    <p>Iran has one of the lowest internet freedom scores globally, heavily censoring all forms of media and imposing strict controls during political unrest. The government frequently implements internet shutdowns and blocks access to Western social media platforms to suppress dissent and control public discourse. Such measures are intensified during political crises, showcasing the regime’s use of digital censorship as a tool for political stability.</p>
-    <svg id="iran" height="500" width="1200" style="background: #fff;" ></svg>
-    <h2>Denmark</h2>
-    <p>Denmark consistently ranks high in internet freedom, with minimal government interference and strong protections for freedom of expression. The country's liberal stance was underscored during the Muhammad cartoons controversy, which confirmed its commitment to upholding free speech despite international pressures. Danish internet governance is characterized by an open approach, ensuring that content restrictions are limited and carefully regulated.</p>
-    <svg id="denmark" height="500" width="1200" style="background: #fff;" ></svg>
-    <h2>USA</h2>
-    <p>The USA enjoys high levels of internet freedom, though its score is occasionally marred by issues surrounding privacy, surveillance, and corporate influence over content. Recent concerns include the repeal of net neutrality rules and the handling of misinformation during elections, highlighting the ongoing debate between freedom and regulatory oversight. The country's approach to internet censorship primarily revolves around balancing individual freedoms with national security and public safety.</p>
-    <svg id="usa" height="500" width="1200" style="background: #fff;" ></svg>
-    <script>
-    </script>
-    <p>Insert blurb here</p>
-    <div id="grid" style="width: 1200px; height: 700px; background: #fff;"></div>
     <script>
         //svg setup
-        const makeChart2 = async function() {
+        async function countryChart(div, country) {
             //setup
-            var grid = d3.select('#grid'),
-            margin = { top: 30, right: 30, bottom: 30, left:30 },
-            width = +grid.attr('width') - margin.left - margin.right,
-            height = +grid.attr('height') - margin.top - margin.bottom,
-            g = grid.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+            var grid = d3.select(div).html(''),
+                table = grid.append('table'),
+                thead = table.append('thead'),
+                tbody = table.append('tbody');
+            width = +grid.attr('width'),
+            height = +grid.attr('height'),
+            g = grid.append('g').attr('transform');
         
             //data
             const restrictions = await d3.csv("comaritech_data.csv");
-            console.log(restrictions);
-
             const columns = restrictions.columns.filter(c => c.includes("Restricted?"));
-
-            const countries = [
-                'North Korea', 'China', 'Vietnam', 'Iran', 'Turkmenistan',
-                'Norway', 'Ireland', 'Denmark', 'Sweden', 'Finland',
-                'Afghanistan', 'Australia', 'Bahrain', 'Bangladesh', 'Argentina'
-            ];
-            const restrictions_filtered = restrictions.filter(d => countries.includes(d.Country));
+            const restriction = restrictions.find(d => d.Country === country);
 
             //setup table
-            var table = d3.select('#grid')
+            var table = d3.select(div)
                 .append('table');
 
-            //header
-            var thead = table.append('thead');
-            thead.append('tr')
-                .selectAll('th')
-                .data(['Country'].concat(columns))
-                .enter()
-                .append('th')
-                .text(d => d);
+            //icons
+            const icons = {
+                'Torrents Restricted?': 'fa-download',
+                'Pornography Restricted?': 'fa-xmarks-lines',
+                'Political Media Restricted?': 'fa-landmark',
+                'Social Media Restricted?': 'fa-message'
+            };
 
             //body
-            var tbody = table.append('tbody');
-            restrictions_filtered.forEach(d => {
-                var row = tbody.append('tr');
-                row.append('td').text(d.Country); 
-                columns.forEach(c => {
-                    row.append('td').text(d[c]); 
-                });
-            });
-        }   
-        makeChart2();
+            var trBody = tbody.append('tr');
+            Object.entries(icons).forEach(([c, i]) => {
+                var td = trBody.append('td');
+                const color = restriction[c] === 'Y' ? 'red' : 'green';
+                const text = restriction[c] === 'Y' ? 'Restricted' : 'Allowed';
+                td.append('i').attr('class', `fa-solid ${i} ${color} fa-4x`).style('margin-left', '50px').style('margin-right', '50px');
+                td.append('div').text(c.split("Restricted")[0]).style('font-size', '17px').style('margin-top', '25px').style('margin-left', '30px');
+                td.append('div').text(text).style('font-size', '17px').style('margin-left', '30px');
+            });   
+        }
+        async function countryNumber(svgvar, country) {
+            var svg = d3.select(svgvar),
+            width = +svg.attr('width'),
+            height = +svg.attr('height'),
+            g = svg.append('g').attr('transform');
+
+            const rsfscores = await d3.csv("rsf_scores_formatted.csv");
+            const restriction = rsfscores.find(d => d.Country_EN === country);
+
+            //map countries from json to csv
+            const ISOmapping = new Map(rsfscores.map(d => [d.ISO, +d.Score]));
+            
+            //create score color scale
+            let colorScale = d3.scaleSequential(d3.interpolate("red", "green")).domain(d3.extent(Array.from(ISOmapping.values())));
+
+            console.log(width);
+            console.log(height);
+
+            svg.append("text")
+                    .attr("x", width/2)
+                    .attr("y", height/2+40)
+                    .attr("text-anchor", "middle")
+                    .attr("fill", colorScale(restriction.Score)) 
+                    .attr("font-size", "100px")
+                    .text(restriction.Score);
+            
+            const percentScale = d3.scaleLinear()
+                    .domain([0, 100])
+                    .range([0, 200]);
+
+            svg.append("rect")
+                    .attr("class", "percentage-bar")
+                    .attr("x", width/2.95)
+                    .attr("y", height/2+70)
+                    .attr("height", 15)
+                    .attr("width", 280) 
+                    .attr("fill", "#ccc");
+
+            svg.append("rect")
+                    .attr("class", "percentage-bar")
+                    .attr("x", width/2.95)
+                    .attr("y", height/2+70)
+                    .attr("height", 15)
+                    .attr("width", percentScale(restriction.Score)) 
+                    .attr("fill", colorScale(restriction.Score));
+
+        }
+    </script>
+    <h2>Iran</h2>
+    <p>Iran has one of the lowest internet freedom scores globally, heavily censoring all forms of media and imposing strict controls during political unrest. The government frequently implements internet shutdowns and blocks access to Western social media platforms to suppress dissent and control public discourse. Such measures are intensified during political crises, showcasing the regime’s use of digital censorship as a tool for political stability.</p>
+    <svg class="country" id="iran1" height="200" width="800" style="background: #ffffff;" ></svg>
+    <div class="country" id="iran" style="width: 1200px; height: 300px; background: #fff;"></div>
+    <script>
+        countryChart("#iran", "Iran");
+        countryNumber("#iran1", "Iran");
+    </script>
+    <h2>Denmark</h2>
+    <p>Denmark consistently ranks high in internet freedom, with minimal government interference and strong protections for freedom of expression. The country's liberal stance was underscored during the Muhammad cartoons controversy, which confirmed its commitment to upholding free speech despite international pressures. Danish internet governance is characterized by an open approach, ensuring that content restrictions are limited and carefully regulated.</p>
+    <svg class="country1" id="denmark1" height="200" width="800" style="background: #fff;" ></svg>
+    <div class="country" id="denmark" style="width: 1200px; height: 300px; background: #fff;"></div>
+    <script>
+        countryChart("#denmark", "Denmark");
+        countryNumber("#denmark1", "Denmark");
+    </script>
+    <h2>USA</h2>
+    <p>The USA enjoys high levels of internet freedom, though its score is occasionally marred by issues surrounding privacy, surveillance, and corporate influence over content. Recent concerns include the repeal of net neutrality rules and the handling of misinformation during elections, highlighting the ongoing debate between freedom and regulatory oversight. The country's approach to internet censorship primarily revolves around balancing individual freedoms with national security and public safety.</p>
+    <svg class="country" id="usa1" height="200" width="800" style="background: #fff;" ></svg>
+    <div class="country" id="usa" style="width: 1200px; height: 300px; background: #fff;"></div>
+    <script>
+        countryChart("#usa", "United States");
+        countryNumber("#usa1", "United States");
+    </script>
+    <h2>Learn about another country</h2>
+    <p>Type in the name of any country to find out more about its internet freedom score.</p>
+    <div class = "search">
+        <input type="text" id="countrySearch" placeholder="Country">
+        <button onclick="searchCountry()">Search</button>
+    </div>
+    <svg class="country1" id="country1" height="200" width="800" style="background: #fff;" ></svg>
+    <div class="country" id="country" style="width: 1200px; height: 300px; background: #fff;"></div>
+    <script>
+        function searchCountry() {
+            document.getElementById("country").innerHTML = "";
+            document.getElementById("country1").innerHTML = "";
+    
+            var country = document.getElementById("countrySearch").value;
+            countryChart("#country", country);
+            countryNumber("#country1", country);
+        }
     </script>
     </body>
 </html>
