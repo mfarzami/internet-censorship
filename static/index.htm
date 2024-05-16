@@ -51,7 +51,7 @@
         }
         h1 {
             /*font-family: "JetBrains Mono", monospace;*/
-            font-size: 50px;
+            font-size: 60px;
             padding-top: 20;
             overflow: hidden;
             border-right: .07em solid rgb(0, 0, 0);
@@ -69,6 +69,15 @@
             margin-left: auto;
             margin-right: auto;
             text-align: center;
+        }
+        h4 {
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+            margin-bottom: 40px;
+            margin-top: 0px;
+            font-weight: 500;
+            font-size: 18px;
         }
         p {
             font-size: 20px;
@@ -93,7 +102,8 @@
         table, th, td {
             border: 1px solid rgb(255, 255, 255);
             border-collapse: collapse;
-            padding: 8px;
+            padding: 10px;
+            padding-top: 0px;
             text-align: left;
         }
         .scroll {
@@ -121,16 +131,22 @@
             display: block;
         }
         .country {
-            width: 50%;
-            margin: 0 auto; 
+            width: 100%;
             display: flex;
             justify-content: center;
         }
         .country1 {
-            width: 50%;
-            margin: 0 auto; 
+            width: 100%;
             display: flex;
             justify-content: center;
+        }
+        .case {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin: 30px 0;
+            width: 100%; 
         }
         .search {
             width: 70%;
@@ -140,22 +156,49 @@
             font-size: 16px;
             height: 30px;
         }
+        .zoneFilters {
+            display: flex;
+            justify-content: center;
+            margin: 80px;
+            padding: 30px;
+        }
+        #zoneFilters {
+            width: 100%;
+            text-align: center;
+            padding: 30px;
+        }
+        a {
+            color: rgb(123, 122, 122);
+            text-decoration: none;
+        }
     </style>
     <body>
     <div class="section">
     <div>
     <h1>Internet Censorship</h1>
-    <p>Internet censorship is the suppression of what can be accessed, published, or viewed on the internet. Governed by public and private entities, these restrictions vary significantly from country to country. The motives behind censorship can range from maintaining security to preserving culture. In many places, censorship challenges the freedom of expression and the right to information.</p>    
-    <p>In 2023, Reporters without Borders collected data and scored internet censorship levels around the world. The score ranges from 0 to 100, where higher scores indicate greater freedom. This assessment is based on a variety of factors including the diversity of political, social, and cultural opinions allowed on the internet, the level of independence media organizations have, the amount of fear journalists may face that leads to self-censorship, and the laws that dictate these factors.</p>
+    <h4>A data visualization by Mitra Farzami</h4>
+    <p>Internet censorship is the suppression of what can be accessed, published, or viewed on the internet. Governed by public and private entities, these restrictions vary significantly from country to country. The motives behind censorship can range from maintaining security to preserving culture. In many places, censorship unjustly challenges the freedom of expression and the right to information.</p>    
     <div class = "scroll"><p>scroll down</p></div>
     </div>
     </div>
-    
+    <p>In 2023, <a href="https://rsf.org/en/index">RSF</a> collected data and scored internet censorship levels around the world. The score ranges from 0 to 100, where higher scores indicate greater freedom. This assessment is based on a variety of factors including the diversity of political, social, and cultural opinions allowed on the internet, the level of independence media organizations have, the amount of fear journalists may face that leads to self-censorship, and the laws that dictate these factors.</p>
+    <div id="zoneFilters">
+        <label for="zoneFilter">Filter by Region:</label>
+        <select id="zoneFilter">
+            <option value="">All</option>
+            <option value="UE Balkans">EU Balkans</option>
+            <option value="Asie-Pacifique">Asia-Pacific</option>
+            <option value="Amériques">Americas</option>
+            <option value="Afrique">Africa</option>
+            <option value="EEAC">Eastern Europe & Central Asia</option>
+            <option value="MENA">Middle East & North Africa</option>
+        </select>
+    </div>
     <svg class="viz" id="svg" height="700" width="1200" style="background: #fff;" ></svg>
     <script>
 
         //load data
-        const makeChart = async function() {
+        const makeChart = async function(region) {
 
         //svg setup
         var svg = d3.select('svg'),
@@ -164,12 +207,15 @@
         height = +svg.attr('height') - margin.top - margin.bottom,
         g = svg.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
-            const rsfscores = await d3.csv("rsf_scores_formatted.csv");
-            console.log(rsfscores);
+        const rsfscores = await d3.csv("rsf_scores_formatted.csv");
+        const worldtopo = await d3.json("world.json");
 
-            const worldtopo = await d3.json("world.json");
-            console.log(worldtopo);
-
+        //filter data based on region
+        let filteredScores = rsfscores;
+        if (region) {
+            filteredScores = rsfscores.filter(d => d.Zone === region);
+        }
+        
         //set up for map 
         const worldgeo = topojson.feature(worldtopo, worldtopo.objects.worldByIso).features
             //get rid of anarctica
@@ -177,17 +223,22 @@
             .filter(d => d.properties.iso !== "SJM")
             .filter(d => d.properties.iso !== "GRL");
         
-        var projection = d3.geoMercator().fitSize([width, height], {type: "FeatureCollection", features: worldgeo});
+        const filteredGeo = worldgeo.filter(d => {
+            const countryData = filteredScores.find(c => c.ISO === d.properties.iso);
+            return countryData !== undefined;
+        });
+
+        var projection = d3.geoMercator().fitSize([width, height], {type: "FeatureCollection", features: filteredGeo});
         var path = d3.geoPath().projection(projection);
 
         //map countries from json to csv
-        const ISOmapping = new Map(rsfscores.map(d => [d.ISO, +d.Score]));
+        const ISOmapping = new Map(filteredScores.map(d => [d.ISO, +d.Score]));
         
         //create score color scale
         let colorScale = d3.scaleSequential(d3.interpolate("red", "green")).domain(d3.extent(Array.from(ISOmapping.values())));
 
         //output map
-        let countries = svg.selectAll(".country").data(worldgeo)
+        let countries = svg.selectAll(".country").data(filteredGeo)
                 .enter()
                 .append("path")
                 .attr("class", "country")
@@ -199,11 +250,11 @@
             const country = d.properties.name;
             const score  = ISOmapping.get(d.properties.iso);
 
+
+            countries.attr("opacity", 0.3);
+            d3.select(this).attr("opacity", 1);
+
             var [posx, posy] = d3.mouse(this.parentNode);
-            d3.select(this)
-                .transition().duration(200)
-                .attr("stroke","black")
-                .attr("stroke-width", 2);
             var recttooltip = svg.append("rect")
                     .attr("id", "tooltip")
                     .attr("x", posx)
@@ -225,22 +276,27 @@
                     .attr("y", posy+75)
                     .attr("fill", d => colorScale(score)? colorScale(score) : 'grey')
                     .attr("font-size", "30px")
-                    .text("Score: "+Math.round(score));
+                    .text(Math.round(score));
             });
         
         countries.on("mouseout", function(d, i) {
-            d3.select(this)
-                .transition().duration(200)
-                .attr("stroke","");
+            countries.attr("opacity", 1);
             svg.select("#tooltip").remove();
             svg.select("#countryName").remove();
             svg.select("#countryScore").remove();
             });
         }
         makeChart();
+
+        //event listener for auto filtering
+        document.getElementById('zoneFilter').addEventListener('change', function() {
+            d3.select('svg').selectAll('*').remove();
+            const region = this.value;
+            makeChart(region);
+        });
     </script>
 
-    <p>There are huge differences in the daily lives of citizens in the countries that enjoy the highest levels of media liberty alongside those that impose the most strict internet restrictions. Their scores are representative of how people access information and express themselves online, influencing everything from everyday conversations to broader social and political engagement.</p>
+    <p>There are huge differences in the daily lives of citizens in the countries that enjoy the highest levels of media liberty compared to those that impose the most strict internet restrictions. Their scores are representative of how people access information and express themselves online, influencing everything from everyday conversations to broader social and political engagement.</p>
     <div id="svg-container" style="display: flex; justify-content: space-around;">
     <svg id="mostfree" height="400" width="600" style="background: #fff;"></svg>
     <svg id="moststrict" height="400" width="600" style="background: #fff;"></svg>
@@ -306,8 +362,11 @@
             freebars.on("mouseover", function(d, i) {
                 d3.select(this)
                 .transition().duration(200)
-                .attr("stroke","black")
-                .attr("stroke-width", 2);
+                .attr("stroke","black");
+
+                strictbars.transition().duration(200).attr("opacity", 0.3);
+                freebars.transition().duration(200).attr("opacity", 0.3);
+                d3.select(this).transition().duration(200).attr("opacity", 1);
 
                 //add score on mousover
                 mostfree.append("text")
@@ -316,7 +375,7 @@
                     .attr("text-anchor", "middle")
                     .attr("fill", "black") 
                     .attr("class", "scorelabels")
-                    .text("Score: "+d.score)
+                    .text(d.score)
                     .attr("id", "scoreLabel");
             });
 
@@ -325,6 +384,9 @@
                 .transition().duration(200)
                 .attr("stroke","")
                 .attr("stroke-width", 0);
+
+                strictbars.transition().duration(200).attr("opacity", 1);
+                freebars.transition().duration(200).attr("opacity", 1);
 
                 mostfree.select("#scoreLabel").remove();
             });
@@ -377,8 +439,12 @@
             strictbars.on("mouseover", function(d, i) {
                 d3.select(this)
                 .transition().duration(200)
-                .attr("stroke","black")
-                .attr("stroke-width", 2);
+                .attr("stroke","black");
+
+                //make other bars lighter
+                strictbars.transition().duration(200).attr("opacity", 0.3);
+                freebars.transition().duration(200).attr("opacity", 0.3);
+                d3.select(this).transition().duration(200).attr("opacity", 1);
 
                 //add score on mouseover
                 moststrict.append("text")
@@ -387,7 +453,7 @@
                     .attr("text-anchor", "middle")
                     .attr("fill", "black") 
                     .attr("class", "scorelabels")
-                    .text("Score: "+d.score)
+                    .text(d.score)
                     .attr("id", "scoreLabel");
             });
 
@@ -396,6 +462,9 @@
                 .transition().duration(200)
                 .attr("stroke","")
                 .attr("stroke-width", 0);
+
+                strictbars.transition().duration(200).attr("opacity", 1);
+                freebars.transition().duration(200).attr("opacity", 1);
 
                 moststrict.select("#scoreLabel").remove();
             });
@@ -438,9 +507,9 @@
                 var td = trBody.append('td');
                 const color = restriction[c] === 'Y' ? 'red' : 'green';
                 const text = restriction[c] === 'Y' ? 'Restricted' : 'Allowed';
-                td.append('i').attr('class', `fa-solid ${i} ${color} fa-4x`).style('margin-left', '50px').style('margin-right', '50px');
-                td.append('div').text(c.split("Restricted")[0]).style('font-size', '17px').style('margin-top', '25px').style('margin-left', '30px');
-                td.append('div').text(text).style('font-size', '17px').style('margin-left', '30px');
+                td.append('i').attr('class', `fa-solid ${i} ${color} fa-4x`);
+                td.append('div').text(c.split("Restricted")[0]).style('font-size', '17px').style('margin-top', '25px');
+                td.append('div').text(text).style('font-size', '17px');
             });   
         }
         async function countryNumber(svgvar, country) {
@@ -458,59 +527,63 @@
             //create score color scale
             let colorScale = d3.scaleSequential(d3.interpolate("red", "green")).domain(d3.extent(Array.from(ISOmapping.values())));
 
-            console.log(width);
-            console.log(height);
-
             svg.append("text")
-                    .attr("x", width/2)
-                    .attr("y", height/2+40)
                     .attr("text-anchor", "middle")
                     .attr("fill", colorScale(restriction.Score)) 
                     .attr("font-size", "100px")
-                    .text(restriction.Score);
+                    .text(restriction.Score)        
+                    .attr("x", "50%") 
+                    .attr("y", "50%");
             
             const percentScale = d3.scaleLinear()
                     .domain([0, 100])
-                    .range([0, 200]);
+                    .range([0, 280]);
 
             svg.append("rect")
                     .attr("class", "percentage-bar")
-                    .attr("x", width/2.95)
-                    .attr("y", height/2+70)
+                    .attr("transform", `translate(${-140}, 0)`)
+                    .attr("x", "50%") 
+                    .attr("y", "60%")
                     .attr("height", 15)
                     .attr("width", 280) 
                     .attr("fill", "#ccc");
 
             svg.append("rect")
                     .attr("class", "percentage-bar")
-                    .attr("x", width/2.95)
-                    .attr("y", height/2+70)
+                    .attr("transform", `translate(${-140}, 0)`)
+                    .attr("x", "50%") 
+                    .attr("y", "60%")
                     .attr("height", 15)
                     .attr("width", percentScale(restriction.Score)) 
                     .attr("fill", colorScale(restriction.Score));
-
         }
     </script>
     <h2>Iran</h2>
-    <p>Iran has one of the lowest internet freedom scores globally, heavily censoring all forms of media and imposing strict controls during political unrest. The government frequently implements internet shutdowns and blocks access to Western social media platforms to suppress dissent and control public discourse. Such measures are intensified during political crises, showcasing the regime’s use of digital censorship as a tool for political stability.</p>
+    <p>Iran, which became an Islamic Republic following the 1979 revolution, is among the world's lowest-ranked countries for internet freedom. The government enforces strict censorship across all media forms and imposes stringent controls during political unrest. Frequent internet shutdowns and the blocking of Western social media platforms are tactics used to control public discourse. These measures intensify during crises, like the widespread protests following <a href="https://en.wikipedia.org/wiki/Death_of_Mahsa_Amini">the death of Mahsa Amini</a> in 2022, underscoring the regime's reliance on digital censorship to maintain political stability.</p>
+    <div class="case">
     <svg class="country" id="iran1" height="200" width="800" style="background: #ffffff;" ></svg>
     <div class="country" id="iran" style="width: 1200px; height: 300px; background: #fff;"></div>
+    </div> 
     <script>
         countryChart("#iran", "Iran");
         countryNumber("#iran1", "Iran");
     </script>
     <h2>Denmark</h2>
-    <p>Denmark consistently ranks high in internet freedom, with minimal government interference and strong protections for freedom of expression. The country's liberal stance was underscored during the Muhammad cartoons controversy, which confirmed its commitment to upholding free speech despite international pressures. Danish internet governance is characterized by an open approach, ensuring that content restrictions are limited and carefully regulated.</p>
+    <p>Denmark consistently ranks high in internet freedom, with minimal government interference and strong protections for freedom of expression. The country's liberal stance was underscored during the <a href="https://en.wikipedia.org/wiki/Jyllands-Posten_Muhammad_cartoons_controversy">Muhammad cartoons controversy</a> of 2005, which confirmed its commitment to upholding free speech despite international pressures and moral controversies. Danish internet governance is characterized by an open approach, ensuring that content restrictions are limited and carefully regulated.</p>
+    <div class="case">
     <svg class="country1" id="denmark1" height="200" width="800" style="background: #fff;" ></svg>
     <div class="country" id="denmark" style="width: 1200px; height: 300px; background: #fff;"></div>
+    </div>
     <script>
         countryChart("#denmark", "Denmark");
         countryNumber("#denmark1", "Denmark");
     </script>
     <h2>USA</h2>
-    <p>The USA enjoys high levels of internet freedom, though its score is occasionally marred by issues surrounding privacy, surveillance, and corporate influence over content. Recent concerns include the repeal of net neutrality rules and the handling of misinformation during elections, highlighting the ongoing debate between freedom and regulatory oversight. The country's approach to internet censorship primarily revolves around balancing individual freedoms with national security and public safety.</p>
+    <p>The USA enjoys relatively high levels of internet freedom, but some would be surprised to find out that its score is impacted by issues surrounding privacy, surveillance, and corporate influence over content. Recent concerns include the repeal of <a href=“https://en.wikipedia.org/wiki/Net_neutrality_in_the_United_States”> Net Neutrality </a> rules in 2021 and the way various social media platforms handled misinformation during the <a href=“https://apnews.com/article/2022-midterm-elections-voting-rights-technology-business-social-media-f5ba340c7a98f6f058fb3afac74a26bb”>2020 Presidential election</a>, highlighting the ongoing debate between freedom and regulatory oversight. The country's approach to internet censorship revolves around balancing individual freedoms with national security and public safety.</p>
+    <div class="case">
     <svg class="country" id="usa1" height="200" width="800" style="background: #fff;" ></svg>
     <div class="country" id="usa" style="width: 1200px; height: 300px; background: #fff;"></div>
+    </div>
     <script>
         countryChart("#usa", "United States");
         countryNumber("#usa1", "United States");
@@ -518,17 +591,44 @@
     <h2>Learn about another country</h2>
     <p>Type in the name of any country to find out more about its internet freedom score.</p>
     <div class = "search">
-        <input type="text" id="countrySearch" placeholder="Country">
+        <input type="text" id="countrySearch" placeholder="Country" list="countryList">
+        <datalist id="countryList"></datalist>
         <button onclick="searchCountry()">Search</button>
     </div>
+    <div class="case">
     <svg class="country1" id="country1" height="200" width="800" style="background: #fff;" ></svg>
     <div class="country" id="country" style="width: 1200px; height: 300px; background: #fff;"></div>
+    </div>
+    <h4>Data from <a href="rsf.org/en">RSF</a> and <a href="https://www.comparitech.com/blog/vpn-privacy/internet-censorship-map/">Comparitech</a></h4>
     <script>
-        function searchCountry() {
+        async function loadDatalist() {
+            const rsfscores = await d3.csv("rsf_scores_formatted.csv");
+            countryData = rsfscores.map(d => d.Country_EN);
+            populateDatalist(countryData);
+        }
+        function populateDatalist(data) {
+        const dataList = document.getElementById('countryList');
+        dataList.innerHTML = "";
+        data.forEach(d => {
+            const country = document.createElement('option');
+                country.value = d;
+                countryList.appendChild(country);
+            }
+        );
+        }
+        window.onload = loadDatalist;
+        async function searchCountry() {
             document.getElementById("country").innerHTML = "";
             document.getElementById("country1").innerHTML = "";
     
-            var country = document.getElementById("countrySearch").value;
+            const rsfscores = await d3.csv("rsf_scores_formatted.csv");
+            const countries = rsfscores.map(d => d.Country_EN);
+
+            const countryList = document.getElementById('countryList');
+            const input = document.getElementById("countrySearch").value.toLowerCase();
+
+            const country = countries.find(d => d.toLowerCase().includes(input));
+
             countryChart("#country", country);
             countryNumber("#country1", country);
         }
