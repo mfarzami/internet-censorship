@@ -321,7 +321,6 @@
 
             //load data
             const rsfscores = await d3.csv("rsf_scores_formatted.csv");
-            console.log(rsfscores);
 
             //map countries from json to csv
             const ISOmapping = new Map(rsfscores.map(d => [d.ISO, +d.Score]));
