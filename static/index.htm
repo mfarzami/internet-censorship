@@ -11,7 +11,6 @@
         <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
         <link href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Tinos:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
         <script src="https://kit.fontawesome.com/899bdd0e43.js" crossorigin="anonymous"></script>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
     <style>
         @keyframes typing {
@@ -134,11 +133,13 @@
             width: 100%;
             display: flex;
             justify-content: center;
+            margin: 0;
         }
         .country1 {
             width: 100%;
             display: flex;
             justify-content: center;
+            margin: 0;
         }
         .case {
             display: flex;
@@ -249,7 +250,6 @@
             const country = d.properties.name;
             const score  = ISOmapping.get(d.properties.iso);
 
-
             countries.attr("opacity", 0.3);
             d3.select(this).attr("opacity", 1);
 
@@ -358,10 +358,6 @@
 
             //mouseover
             freebars.on("mouseover", function(d, i) {
-                d3.select(this)
-                .transition().duration(200)
-                .attr("stroke","black");
-
                 strictbars.transition().duration(200).attr("opacity", 0.3);
                 freebars.transition().duration(200).attr("opacity", 0.3);
                 d3.select(this).transition().duration(200).attr("opacity", 1);
@@ -435,10 +431,6 @@
 
             //mouseover
             strictbars.on("mouseover", function(d, i) {
-                d3.select(this)
-                .transition().duration(200)
-                .attr("stroke","black");
-
                 //make other bars lighter
                 strictbars.transition().duration(200).attr("opacity", 0.3);
                 freebars.transition().duration(200).attr("opacity", 0.3);
